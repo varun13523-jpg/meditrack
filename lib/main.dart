@@ -2,10 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'auth_gate.dart';
+import 'notification_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // ✅ Firebase MUST be initialized FIRST
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
+  // ✅ Notification init AFTER Firebase
+  await NotificationService.init();
+
   runApp(const MyApp());
 }
 
@@ -14,9 +21,11 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
+    return MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: AuthGate(),
+      title: 'MediTrack',
+      theme: ThemeData(primarySwatch: Colors.deepPurple),
+      home: const AuthGate(),
     );
   }
 }

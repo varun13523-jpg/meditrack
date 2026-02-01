@@ -54,19 +54,38 @@ class HomePage extends StatelessWidget {
           final medicines = snapshot.data!.docs;
 
           return ListView.builder(
+            padding: const EdgeInsets.all(16),
             itemCount: medicines.length,
             itemBuilder: (context, index) {
-              final data = medicines[index];
+              final data = medicines[index].data() as Map<String, dynamic>;
 
               return Card(
-                margin: const EdgeInsets.all(10),
+                elevation: 3,
+                margin: const EdgeInsets.only(bottom: 12),
                 child: ListTile(
-                  title: Text(data['medicineName']),
-                  subtitle: Text('${data['dosage']} • ${data['time']}'),
-                  trailing: Icon(
-                    Icons.circle,
-                    color: data['active'] ? Colors.green : Colors.red,
-                    size: 12,
+                  leading: const Icon(
+                    Icons.medication,
+                    color: Colors.deepPurple,
+                  ),
+                  title: Text(
+                    data['medicineName'],
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  subtitle: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text("Dosage: ${data['dosage']}"),
+                      Text("Time: ${data['time']}"),
+                    ],
+                  ),
+                  trailing: IconButton(
+                    icon: const Icon(Icons.delete, color: Colors.red),
+                    onPressed: () async {
+                      await FirebaseFirestore.instance
+                          .collection('medicines')
+                          .doc(medicines[index].id)
+                          .delete();
+                    },
                   ),
                 ),
               );
