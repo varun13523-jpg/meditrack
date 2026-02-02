@@ -1,6 +1,6 @@
-import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
 import 'notification_service.dart';
 
 class AddMedicinePage extends StatefulWidget {
@@ -11,9 +11,8 @@ class AddMedicinePage extends StatefulWidget {
 }
 
 class _AddMedicinePageState extends State<AddMedicinePage> {
-  final TextEditingController medicineController = TextEditingController();
-  final TextEditingController dosageController = TextEditingController();
-
+  final medicineController = TextEditingController();
+  final dosageController = TextEditingController();
   TimeOfDay? selectedTime;
   bool loading = false;
 
@@ -33,7 +32,8 @@ class _AddMedicinePageState extends State<AddMedicinePage> {
       final user = FirebaseAuth.instance.currentUser;
       final now = DateTime.now();
 
-      final reminderTime = DateTime(
+      // Combine today's date with selected time
+      DateTime reminderTime = DateTime(
         now.year,
         now.month,
         now.day,
@@ -41,7 +41,12 @@ class _AddMedicinePageState extends State<AddMedicinePage> {
         selectedTime!.minute,
       );
 
-      // 🔹 Save to Firestore
+      // If time already passed today, set for tomorrow
+      if (reminderTime.isBefore(now)) {
+        reminderTime = reminderTime.add(const Duration(days: 1));
+      }
+
+      // 1. Save to Firestore
       await FirebaseFirestore.instance.collection('medicines').add({
         'medicineName': medicineController.text.trim(),
         'dosage': dosageController.text.trim(),
@@ -50,30 +55,22 @@ class _AddMedicinePageState extends State<AddMedicinePage> {
         'createdAt': Timestamp.now(),
       });
 
-      // 🔔 Schedule notification
+      // 2. Schedule Notification
       await NotificationService.scheduleNotification(
         id: DateTime.now().millisecondsSinceEpoch ~/ 1000,
         title: 'Medicine Reminder 💊',
         body: 'Time to take ${medicineController.text.trim()}',
-        time: reminderTime,
+        scheduledTime: reminderTime,
       );
 
       if (!mounted) return;
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Medicine added successfully')),
-      );
-
       Navigator.pop(context);
     } catch (e) {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('Error: $e')));
     } finally {
-      // 🔥 FIXES INFINITE LOADING
-      if (mounted) {
-        setState(() => loading = false);
-      }
+      if (mounted) setState(() => loading = false);
     }
   }
 
@@ -89,24 +86,18 @@ class _AddMedicinePageState extends State<AddMedicinePage> {
               controller: medicineController,
               decoration: const InputDecoration(labelText: 'Medicine Name'),
             ),
-            const SizedBox(height: 12),
             TextField(
               controller: dosageController,
-              keyboardType: TextInputType.number,
               decoration: const InputDecoration(labelText: 'Dosage'),
             ),
             const SizedBox(height: 20),
-
             ElevatedButton(
               onPressed: () async {
                 final picked = await showTimePicker(
                   context: context,
                   initialTime: TimeOfDay.now(),
                 );
-
-                if (picked != null) {
-                  setState(() => selectedTime = picked);
-                }
+                if (picked != null) setState(() => selectedTime = picked);
               },
               child: Text(
                 selectedTime == null
@@ -114,9 +105,7 @@ class _AddMedicinePageState extends State<AddMedicinePage> {
                     : 'Time: ${selectedTime!.format(context)}',
               ),
             ),
-
             const SizedBox(height: 30),
-
             ElevatedButton(
               onPressed: loading ? null : addMedicine,
               child: loading

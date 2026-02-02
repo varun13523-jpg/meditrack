@@ -1,19 +1,48 @@
-import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart'; // Required for the instant test
 import 'add_medicine_page.dart';
+import 'notification_service.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
 
+  // Access the plugin directly for the instant test button
+  static final FlutterLocalNotificationsPlugin _notificationsPlugin =
+      FlutterLocalNotificationsPlugin();
+
   @override
   Widget build(BuildContext context) {
-    final user = FirebaseAuth.instance.currentUser;
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('MediTrack Dashboard'),
         actions: [
+          // 🔔 INSTANT TEST BUTTON: Fires a notification immediately
+          IconButton(
+            icon: const Icon(Icons.notifications_active, color: Colors.amber),
+            onPressed: () async {
+              const androidDetails = AndroidNotificationDetails(
+                'meditrack_alerts',
+                'Medicine Alerts',
+                importance: Importance.max,
+                priority: Priority.high,
+              );
+
+              await _notificationsPlugin.show(
+                888,
+                'Instant Test! 🔔',
+                'If you see this, the notification system is working!',
+                const NotificationDetails(android: androidDetails),
+              );
+
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Instant test notification sent!'),
+                ),
+              );
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () async {
@@ -22,7 +51,6 @@ class HomePage extends StatelessWidget {
           ),
         ],
       ),
-
       floatingActionButton: FloatingActionButton(
         child: const Icon(Icons.add),
         onPressed: () {
@@ -35,7 +63,7 @@ class HomePage extends StatelessWidget {
       body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance
             .collection('medicines')
-            .where('userId', isEqualTo: FirebaseAuth.instance.currentUser!.uid)
+            .where('userId', isEqualTo: FirebaseAuth.instance.currentUser?.uid)
             .snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
@@ -58,6 +86,7 @@ class HomePage extends StatelessWidget {
             itemCount: medicines.length,
             itemBuilder: (context, index) {
               final data = medicines[index].data() as Map<String, dynamic>;
+              final docId = medicines[index].id;
 
               return Card(
                 elevation: 3,
@@ -68,7 +97,7 @@ class HomePage extends StatelessWidget {
                     color: Colors.deepPurple,
                   ),
                   title: Text(
-                    data['medicineName'],
+                    data['medicineName'] ?? 'No Name',
                     style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
                   subtitle: Column(
@@ -83,7 +112,7 @@ class HomePage extends StatelessWidget {
                     onPressed: () async {
                       await FirebaseFirestore.instance
                           .collection('medicines')
-                          .doc(medicines[index].id)
+                          .doc(docId)
                           .delete();
                     },
                   ),

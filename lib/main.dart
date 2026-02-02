@@ -7,10 +7,10 @@ import 'notification_service.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // ✅ Firebase MUST be initialized FIRST
+  // Initialize Firebase
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
-  // ✅ Notification init AFTER Firebase
+  // Initialize Notifications
   await NotificationService.init();
 
   runApp(const MyApp());
@@ -24,7 +24,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'MediTrack',
-      theme: ThemeData(primarySwatch: Colors.deepPurple),
+      theme: ThemeData(useMaterial3: true, colorSchemeSeed: Colors.deepPurple),
       home: const AuthGate(),
     );
   }
